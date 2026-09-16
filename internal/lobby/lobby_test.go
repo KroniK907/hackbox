@@ -146,6 +146,12 @@ func TestJoinValidationCreatesNoIdentity(t *testing.T) {
 			if !strings.Contains(rec.Body.String(), tt.wantError) {
 				t.Fatalf("body = %q, want %q", rec.Body.String(), tt.wantError)
 			}
+			if !strings.Contains(rec.Body.String(), `role="alert"`) {
+				t.Fatalf("join error missing alert: %q", rec.Body.String())
+			}
+			if strings.Contains(rec.Body.String(), `hx-get="/lobby/partials/phone"`) {
+				t.Fatal("join error page still live-swaps and would clear the alert")
+			}
 			if cookies := rec.Result().Cookies(); len(cookies) != 0 {
 				t.Fatalf("cookies = %#v, want none", cookies)
 			}
@@ -422,9 +428,9 @@ func TestPagesRefetchPartialsOnRosterEventAndReconnect(t *testing.T) {
 func assertLivePage(t *testing.T, body, partialPath string) {
 	t.Helper()
 	for _, want := range []string{
-		`src="/static/htmx.min.js"`,
-		`src="/static/sse.min.js"`,
-		`href="/static/live.css"`,
+		`src="/static/htmx.min.js?v=`,
+		`src="/static/sse.min.js?v=`,
+		`href="/static/live.css?v=`,
 		`hx-ext="sse"`,
 		`sse-connect="/lobby/events"`,
 		`hx-get="` + partialPath + `"`,
@@ -473,6 +479,9 @@ func testLobby(t *testing.T) (*store.DB, http.Handler, *lobby.Lobby) {
 	room, err := lobby.New(db, lobby.Config{
 		AdminCookieName: "hackbox_admin",
 		Events:          hub.New(),
+		JoinURL: func(*http.Request) string {
+			return "http://192.168.10.24:8654/"
+		},
 		PasswordMatches: func(hash, password string) bool {
 			return hash == "stored-hash" && password == "correct horse"
 		},
@@ -509,6 +518,33 @@ func lobbyRequest(
 	}
 	if cookie != nil {
 		req.AddCookie(cookie)
+	}
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	return rec
+}
+
+func lobbyRequestAll(
+	t *testing.T,
+	handler http.Handler,
+	method string,
+	path string,
+	form url.Values,
+	cookies ...*http.Cookie,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	body := strings.NewReader("")
+	if form != nil {
+		body = strings.NewReader(form.Encode())
+	}
+	req := httptest.NewRequest(method, "http://hackbox.test"+path, body)
+	if form != nil {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	for _, cookie := range cookies {
+		if cookie != nil {
+			req.AddCookie(cookie)
+		}
 	}
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

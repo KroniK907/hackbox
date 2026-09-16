@@ -1,23 +1,36 @@
-{{define "room-body"}}
-<main
-  id="phone-body"
+{{define "room-inner"}}
+<div
+  id="phone-inner"
+  class="ui-phone-stack"
   hx-get="/lobby/partials/phone"
   hx-trigger="sse:roster, htmx:sseOpen from:body"
   hx-swap="outerHTML"
 >
-  <h1>{{if .Seated}}In the room{{else if .Waiting}}In the wait list{{else}}In the audience{{end}}</h1>
-  <p>{{.DisplayName}}</p>
-  {{if not .Seated}}
+  <div class="ui-you">{{.DisplayName}}</div>
+  <div class="ui-token ui-token-self" style="--c: {{color .AvatarSeed}}">{{avatar .AvatarSeed}}</div>
+  <form method="post" action="/lobby/reroll">
+    <button class="ui-btn" type="submit">Reroll face</button>
+  </form>
+  {{if .Seated}}
+  <p class="ui-muted">You have a seat. Smash Ready.</p>
+  {{if .ShowReady}}
+  <form method="post" action="/lobby/ready">
+    <button class="ui-plunger" type="submit">{{if .Ready}}UNREADY{{else}}READY{{end}}</button>
+  </form>
+  {{end}}
+  {{else if .Waiting}}
+  <p class="ui-muted">You are in line.</p>
   <form method="post" action="/lobby/wait">
-    {{if .Waiting}}
-    <button type="submit">Leave wait list</button>
-    {{else}}
-    <button type="submit">Join wait list</button>
-    {{end}}
+    <button class="ui-btn" type="submit">Leave wait list</button>
+  </form>
+  {{else}}
+  <p class="ui-muted">You are watching. Join the wait line to take a seat.</p>
+  <form method="post" action="/lobby/wait">
+    <button class="ui-btn" type="submit">Join wait list</button>
   </form>
   {{end}}
   <form method="post" action="/lobby/leave">
-    <button type="submit">Leave</button>
+    <button class="ui-btn ui-btn-danger" type="submit">Leave</button>
   </form>
-</main>
+</div>
 {{end}}

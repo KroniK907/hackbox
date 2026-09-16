@@ -1,0 +1,17 @@
+{{template "ui-start" .}}
+<div class="ui-page ui-page-compact">
+  <div class="ui-stack">
+    <div class="ui-header">
+      <div class="ui-brand ui-brand-sm">SETTINGS</div>
+    </div>
+    <form class="ui-stack" method="post" action="/settings/login">
+      <label class="ui-field">
+        <span>Password</span>
+        <input name="password" type="password" required>
+      </label>
+      {{with .LoginError}}<p class="ui-alert" role="alert">{{.}}</p>{{end}}
+      <button class="ui-btn" type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+{{template "ui-end"}}

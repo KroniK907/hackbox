@@ -1,18 +1,34 @@
 {{define "join-body"}}
-<main
+<div
   id="phone-body"
+  class="ui-phone-wrap"
+  {{if not .Error}}
   hx-get="/lobby/partials/phone"
   hx-trigger="sse:roster, htmx:sseOpen from:body"
   hx-swap="outerHTML"
+  {{end}}
 >
-  <h1>Join Hackbox</h1>
-  <form method="post" action="/lobby/join">
-    <label>Name <input name="display_name" value="{{.DisplayName}}" required autofocus></label>
-    {{if .ShowPassword}}
-    <label>Admin password <input name="admin_password" type="password"></label>
-    {{end}}
-    {{with .Error}}<p role="alert">{{.}}</p>{{end}}
-    <button type="submit">Join</button>
-  </form>
-</main>
+  <div class="ui-phone">
+    <div class="ui-notch">hackbox</div>
+    <div class="ui-phone-body">
+      <div class="ui-you">Who are you?</div>
+      <div class="ui-token ui-token-self" style="--c: {{color .AvatarSeed}}">{{avatar .AvatarSeed}}</div>
+      <form method="post" action="/lobby/reroll">
+        <input type="hidden" name="display_name" value="{{.DisplayName}}">
+        <input type="hidden" name="avatar_seed" value="{{.AvatarSeed}}">
+        <button class="ui-btn" type="submit">Reroll face</button>
+      </form>
+      <form method="post" action="/lobby/join" class="ui-stack">
+        <input type="hidden" name="avatar_seed" value="{{.AvatarSeed}}">
+        <label class="ui-field">Name <input name="display_name" value="{{.DisplayName}}" required autofocus></label>
+        {{if .ShowPassword}}
+        <label class="ui-field">Host password <input name="admin_password" type="password"></label>
+        <p class="ui-muted">Leave the password blank to join as a player.</p>
+        {{end}}
+        {{with .Error}}<p class="ui-alert" role="alert">{{.}}</p>{{end}}
+        <button class="ui-btn" type="submit">Join</button>
+      </form>
+    </div>
+  </div>
+</div>
 {{end}}

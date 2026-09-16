@@ -1,0 +1,19 @@
+{{define "kick-players"}}
+<details class="ui-accordion">
+  <summary>
+    <span class="ui-caret" aria-hidden="true"></span>
+    Kick Players
+  </summary>
+  <div class="ui-accordion-body">
+    {{range .Players}}
+    <form class="ui-accordion-row" method="post" action="/settings/kick">
+      <span>{{.DisplayName}}{{if .ClaimedHost}} (host){{end}}</span>
+      <input type="hidden" name="player_id" value="{{.ID}}">
+      <button class="ui-btn ui-btn-danger ui-btn-inline" type="submit">Kick</button>
+    </form>
+    {{else}}
+    <p class="ui-muted">No players yet.</p>
+    {{end}}
+  </div>
+</details>
+{{end}}

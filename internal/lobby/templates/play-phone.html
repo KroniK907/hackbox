@@ -1,0 +1,45 @@
+{{template "ui-start" .}}
+<div class="ui-phone-wrap">
+  <div class="ui-phone">
+    <div class="ui-notch">hackbox</div>
+    <div class="ui-phone-body">
+      {{.GameBody}}
+    </div>
+    <button
+      class="ui-gear"
+      type="button"
+      aria-controls="player-gear"
+      onclick="document.getElementById('player-gear').hidden = false"
+    >⚙</button>
+    {{if .HostPanel}}
+    <button
+      type="button"
+      class="ui-btn ui-drawer-handle"
+      aria-controls="host-drawer"
+      onclick="document.getElementById('host-drawer').classList.add('is-open')"
+    >Host</button>
+    {{template "host-drawer" .}}
+    {{end}}
+    <div id="player-gear" class="ui-modal" hidden>
+      <div class="ui-card">
+        <h2>{{.DisplayName}}</h2>
+        <button class="ui-btn" type="button" onclick="document.getElementById('player-gear').hidden = true">Close</button>
+        {{if not .Seated}}
+        {{if .Waiting}}
+        <form method="post" action="/lobby/wait">
+          <button class="ui-btn" type="submit">Leave wait list</button>
+        </form>
+        {{else}}
+        <form method="post" action="/lobby/wait">
+          <button class="ui-btn" type="submit">Join wait list</button>
+        </form>
+        {{end}}
+        {{end}}
+        <form method="post" action="/lobby/leave">
+          <button class="ui-btn ui-btn-danger" type="submit">Leave</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{template "ui-end"}}

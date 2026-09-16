@@ -24,6 +24,7 @@ var ErrAdminHashMissing = errors.New("store: admin password hash does not exist"
 // DB is an open host.sqlite handle.
 type DB struct {
 	sql *sql.DB
+	dir string
 }
 
 // DefaultDataDir is os.UserCacheDir() plus hackbox.
@@ -52,7 +53,7 @@ func Open(dir string) (*DB, error) {
 		_ = sqlDB.Close()
 		return nil, fmt.Errorf("store: ping: %w", err)
 	}
-	db := &DB{sql: sqlDB}
+	db := &DB{sql: sqlDB, dir: dir}
 	if err := db.ensureSchema(); err != nil {
 		_ = sqlDB.Close()
 		return nil, err
@@ -72,6 +73,11 @@ func (db *DB) Close() error {
 // packages. Callers must not close it.
 func (db *DB) SQL() *sql.DB {
 	return db.sql
+}
+
+// Dir is the data directory that holds host.sqlite and host.log.
+func (db *DB) Dir() string {
+	return db.dir
 }
 
 // HasAdminHash reports whether Finish has already stored a password hash.
@@ -100,6 +106,12 @@ func (db *DB) AdminHash(ctx context.Context) (string, error) {
 // FinishSetup stores the first admin hash and its initial server-side session
 // in one transaction. A later call fails with ErrAdminHashExists.
 func (db *DB) FinishSetup(ctx context.Context, hash, sessionID string) error {
+	return db.FinishSetupWith(ctx, hash, sessionID, nil)
+}
+
+// FinishSetupWith is FinishSetup plus extra work in the same transaction,
+// used to persist setup form knobs next to the password hash.
+func (db *DB) FinishSetupWith(ctx context.Context, hash, sessionID string, extra func(*sql.Tx) error) error {
 	if hash == "" {
 		return errors.New("store: empty admin hash")
 	}
@@ -125,8 +137,64 @@ func (db *DB) FinishSetup(ctx context.Context, hash, sessionID string) error {
 	if _, err := tx.ExecContext(ctx, `INSERT INTO admin_session (id, kind) VALUES (?, 'operator')`, sessionID); err != nil {
 		return fmt.Errorf("store: insert admin session: %w", err)
 	}
+	if extra != nil {
+		if err := extra(tx); err != nil {
+			return err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit finish setup: %w", err)
+	}
+	return nil
+}
+
+// KVGet returns an opaque value for gameID. ok is false when the key is missing.
+func (db *DB) KVGet(ctx context.Context, gameID, key string) (value []byte, ok bool, err error) {
+	var stored []byte
+	err = db.sql.QueryRowContext(
+		ctx,
+		`SELECT value FROM game_kv WHERE game_id = ? AND key = ?`,
+		gameID,
+		key,
+	).Scan(&stored)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("store: kv get: %w", err)
+	}
+	return stored, true, nil
+}
+
+// KVSet writes an opaque value for gameID. Host does not parse the bytes.
+func (db *DB) KVSet(ctx context.Context, gameID, key string, value []byte) error {
+	if gameID == "" || key == "" {
+		return errors.New("store: empty game kv key")
+	}
+	if value == nil {
+		value = []byte{}
+	}
+	_, err := db.sql.ExecContext(
+		ctx,
+		`INSERT INTO game_kv (game_id, key, value) VALUES (?, ?, ?)
+		 ON CONFLICT(game_id, key) DO UPDATE SET value = excluded.value`,
+		gameID,
+		key,
+		value,
+	)
+	if err != nil {
+		return fmt.Errorf("store: kv set: %w", err)
+	}
+	return nil
+}
+
+// KVDeleteGame removes every key for gameID. Other game ids stay.
+func (db *DB) KVDeleteGame(ctx context.Context, gameID string) error {
+	if gameID == "" {
+		return errors.New("store: empty game id")
+	}
+	if _, err := db.sql.ExecContext(ctx, `DELETE FROM game_kv WHERE game_id = ?`, gameID); err != nil {
+		return fmt.Errorf("store: kv delete game: %w", err)
 	}
 	return nil
 }
@@ -155,6 +223,12 @@ CREATE TABLE IF NOT EXISTS admin_password (
 CREATE TABLE IF NOT EXISTS admin_session (
 	id TEXT PRIMARY KEY CHECK (length(id) > 0),
 	kind TEXT NOT NULL CHECK (kind IN ('operator', 'host-phone'))
+);
+CREATE TABLE IF NOT EXISTS game_kv (
+	game_id TEXT NOT NULL CHECK (length(game_id) > 0),
+	key TEXT NOT NULL CHECK (length(key) > 0),
+	value BLOB NOT NULL,
+	PRIMARY KEY (game_id, key)
 );
 `)
 	if err != nil {

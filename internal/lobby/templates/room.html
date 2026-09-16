@@ -1,20 +1,35 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Hackbox room</title>
-  <link rel="stylesheet" href="/static/live.css">
-  <script defer src="/static/htmx.min.js"></script>
-  <script defer src="/static/sse.min.js"></script>
-</head>
-<body
-  hx-ext="sse"
-  sse-connect="/lobby/events"
-  hx-on::sse-error="document.getElementById('connection-overlay').hidden = false"
-  hx-on::sse-open="document.getElementById('connection-overlay').hidden = true"
->
-  <div id="connection-overlay" class="connection-overlay" role="status" hidden>Connection lost. Reconnecting...</div>
-  {{template "room-body" .}}
-</body>
-</html>
+{{template "ui-start" .}}
+<div class="ui-phone-wrap">
+  <div class="ui-phone">
+    <div class="ui-notch">hackbox</div>
+    <div class="ui-phone-body">
+      {{template "room-inner" .}}
+    </div>
+    {{if .HostPanel}}
+    {{/* Drawer sits outside #phone-inner so roster and later game swaps keep Host. */}}
+    <button
+      type="button"
+      class="ui-btn ui-drawer-handle"
+      aria-controls="host-drawer"
+      onclick="document.getElementById('host-drawer').classList.add('is-open')"
+    >Host</button>
+    {{template "host-drawer" .}}
+    {{end}}
+    {{if .TakeHost}}
+    <div class="ui-modal">
+      <div class="ui-card">
+        <h2>Take host</h2>
+        <p>Type the host password to take the booth.</p>
+        <form class="ui-stack" method="post" action="/lobby/take-host">
+          <label class="ui-field">
+            <span>Password</span>
+            <input name="password" type="password" required>
+          </label>
+          <button class="ui-btn" type="submit">Take host</button>
+        </form>
+      </div>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{template "ui-end"}}

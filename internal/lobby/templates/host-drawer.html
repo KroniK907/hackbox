@@ -1,0 +1,86 @@
+{{define "host-drawer"}}
+<button
+  type="button"
+  class="ui-drawer-scrim"
+  aria-label="Close host panel"
+  tabindex="-1"
+  onclick="document.getElementById('host-drawer').classList.remove('is-open')"
+></button>
+<aside id="host-drawer" class="ui-drawer" aria-label="Host panel">
+  <button
+    type="button"
+    class="ui-btn"
+    onclick="document.getElementById('host-drawer').classList.remove('is-open')"
+  >Back</button>
+  {{if .ShowStart}}
+  <form method="post" action="/settings/start">
+    <button class="ui-btn" type="submit">Start</button>
+  </form>
+  {{end}}
+  {{if and .LoadedGameID (not .Started)}}
+  <form method="post" action="/settings/auto-start">
+    <span>Auto-start</span>
+    {{if .AutoStart}}
+    <input type="hidden" name="enabled" value="0">
+    <button class="ui-btn" type="submit">On</button>
+    {{else}}
+    <input type="hidden" name="enabled" value="1">
+    <button class="ui-btn" type="submit">Off</button>
+    {{end}}
+  </form>
+  {{end}}
+  {{if .Started}}
+  <form method="post" action="/settings/pause">
+    <button class="ui-btn" type="submit">Pause</button>
+  </form>
+  <form method="post" action="/settings/resume">
+    <button class="ui-btn" type="submit">Resume</button>
+  </form>
+  <form method="post" action="/settings/stop">
+    <button class="ui-btn" type="submit">Stop</button>
+  </form>
+  {{else}}
+  {{template "host-game-pick" .}}
+  {{end}}
+  {{if .Seated}}
+  <form method="post" action="/settings/stand">
+    <button class="ui-btn" type="submit">Stand (watch)</button>
+  </form>
+  {{else if .TableFull}}
+  <p class="ui-muted">Pick who to bump.</p>
+  {{range .BumpCandidates}}
+  <form method="post" action="/settings/sit">
+    <input type="hidden" name="bump_player_id" value="{{.ID}}">
+    <button class="ui-btn" type="submit">Sit, bump {{.DisplayName}}</button>
+  </form>
+  {{end}}
+  {{else}}
+  <form method="post" action="/settings/sit">
+    <button class="ui-btn" type="submit">Sit</button>
+  </form>
+  {{end}}
+  {{template "kick-players" .}}
+  <a class="ui-btn" href="/settings" target="_blank" rel="noopener">Room settings</a>
+</aside>
+{{end}}
+
+{{define "host-game-pick"}}
+{{if .LoadedGameID}}
+<p class="ui-muted">Loaded {{.LoadedGameID}}</p>
+<form method="post" action="/settings/shutdown">
+  <button class="ui-btn" type="submit">Unload</button>
+</form>
+{{else if .GameIDs}}
+<form class="ui-stack" method="post" action="/settings/load">
+  <label class="ui-field">
+    <span>Game</span>
+    <select name="game_id">
+      {{range .GameIDs}}<option value="{{.}}">{{.}}</option>{{end}}
+    </select>
+  </label>
+  <button class="ui-btn" type="submit">Load</button>
+</form>
+{{else}}
+<p class="ui-muted">No games registered.</p>
+{{end}}
+{{end}}

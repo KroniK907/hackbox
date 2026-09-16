@@ -1,17 +1,45 @@
 {{define "board-roster"}}
-<section
+<div
   id="board-roster"
+  class="ui-board"
   hx-get="/lobby/partials/board-roster"
   hx-trigger="sse:roster, htmx:sseOpen from:body"
   hx-swap="outerHTML"
 >
-  <h2>Seated</h2>
-  <ul>
-    {{range .Seated}}<li>{{.DisplayName}}</li>{{else}}<li>No seated players.</li>{{end}}
-  </ul>
-  <h2>Waiting</h2>
-  <ul>
-    {{range .Waiting}}<li>{{.DisplayName}}</li>{{else}}<li>No one waiting.</li>{{end}}
-  </ul>
-</section>
+  <aside class="ui-rail">
+    <div class="ui-brand">HACK<br>BOX</div>
+    <div class="ui-qr">{{qr .JoinURL}}</div>
+    {{with .JoinURL}}<div class="ui-url">{{.}}</div>{{end}}
+    <div class="ui-pills">
+      {{if .Open}}
+      <span class="ui-pill">OPEN</span>
+      {{else}}
+      <span class="ui-pill ui-pill-closed">CLOSED</span>
+      {{end}}
+      <span class="ui-pill">{{.SeatedCount}} / {{.SeatCap}} SEATS</span>
+      <span class="ui-pill">{{.AudienceCount}} Audience Members</span>
+    </div>
+  </aside>
+  <main class="ui-main">
+    <div class="ui-cluster">
+      {{range .Seated}}
+      <div class="ui-seat">
+        <div class="ui-token{{if .Disconnected}} ui-token-dim{{end}}" style="--c: {{color .AvatarSeed}}">
+          {{avatar .AvatarSeed}}
+          {{if .ClaimedHost}}<div class="ui-host-badge">HOST</div>{{end}}
+          {{if .Ready}}<div class="ui-check">✓</div>{{end}}
+        </div>
+        <div class="ui-token-name">{{.DisplayName}}</div>
+      </div>
+      {{end}}
+    </div>
+  </main>
+  <div class="ui-marquee">
+    <span>NOW SERVING THE WAIT LINE</span>
+    {{range .Waiting}}
+    <span class="ui-chip" style="background: {{color .AvatarSeed}}">{{avatar .AvatarSeed}} {{.DisplayName}}</span>
+    {{end}}
+  </div>
+  <a class="ui-gear" href="/settings" target="_blank" rel="noopener" title="Settings">⚙</a>
+</div>
 {{end}}

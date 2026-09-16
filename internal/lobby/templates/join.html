@@ -1,20 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Join Hackbox</title>
-  <link rel="stylesheet" href="/static/live.css">
-  <script defer src="/static/htmx.min.js"></script>
-  <script defer src="/static/sse.min.js"></script>
-</head>
-<body
-  hx-ext="sse"
-  sse-connect="/lobby/events"
-  hx-on::sse-error="document.getElementById('connection-overlay').hidden = false"
-  hx-on::sse-open="document.getElementById('connection-overlay').hidden = true"
->
-  <div id="connection-overlay" class="connection-overlay" role="status" hidden>Connection lost. Reconnecting...</div>
-  {{template "join-body" .}}
-</body>
-</html>
+{{template "ui-start" .}}
+{{template "join-body" .}}
+{{template "ui-end"}}

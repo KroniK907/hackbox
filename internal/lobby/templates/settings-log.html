@@ -1,0 +1,23 @@
+{{template "ui-start" .}}
+<div class="ui-page ui-page-compact">
+  <div class="ui-stack">
+    <div class="ui-header">
+      <a class="ui-btn ui-btn-inline" href="/settings">Back</a>
+      <div class="ui-brand ui-brand-sm">GAME LOG</div>
+    </div>
+    <div hx-get="/settings/log/tail" hx-trigger="sse:log" hx-target="#log-tail" hx-swap="innerHTML" hx-on::after-swap="var el = document.getElementById('log-tail'); if (el) el.scrollTop = el.scrollHeight"></div>
+    <pre id="log-tail" class="ui-log">{{template "log-lines" .}}</pre>
+  </div>
+</div>
+<script>
+(function () {
+  var el = document.getElementById("log-tail");
+  if (el) {
+    el.scrollTop = el.scrollHeight;
+  }
+})();
+</script>
+{{template "ui-end"}}
+
+{{define "log-lines"}}{{range .Lines}}{{.}}
+{{end}}{{end}}

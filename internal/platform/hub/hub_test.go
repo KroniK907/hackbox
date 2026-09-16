@@ -31,6 +31,12 @@ func TestPublishSendsNamedEvent(t *testing.T) {
 	if !strings.Contains(event, "data: update") {
 		t.Fatalf("event = %q, want update data", event)
 	}
+
+	events.PublishData("theme", "neon-dark")
+	theme := readEvent(t, reader, "event: theme")
+	if !strings.Contains(theme, "data: neon-dark") {
+		t.Fatalf("theme event = %q, want neon-dark data", theme)
+	}
 }
 
 func readEvent(t *testing.T, reader *bufio.Reader, want string) string {

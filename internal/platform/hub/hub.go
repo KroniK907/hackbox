@@ -4,6 +4,7 @@ package hub
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -24,12 +25,19 @@ func New() *Hub {
 // Publish sends a named event to each connected page. A slow page may miss an
 // event because every event tells clients to fetch the current server state.
 func (h *Hub) Publish(name string) {
+	h.PublishData(name, "update")
+}
+
+// PublishData sends a named event with a one-line payload. Theme flips use this
+// so every open page can set html[data-theme] without waiting on another GET.
+func (h *Hub) PublishData(name, data string) {
+	data = strings.ReplaceAll(strings.ReplaceAll(data, "\r", ""), "\n", "")
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	for subscriber := range h.subscribers {
 		select {
-		case subscriber <- name:
+		case subscriber <- name + "\n" + data:
 		default:
 		}
 	}
@@ -60,8 +68,12 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
-		case name := <-subscriber:
-			_, _ = fmt.Fprintf(w, "event: %s\ndata: update\n\n", name)
+		case payload := <-subscriber:
+			name, data, ok := strings.Cut(payload, "\n")
+			if !ok {
+				name, data = payload, "update"
+			}
+			_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", name, data)
 			flusher.Flush()
 		case <-pings.C:
 			_, _ = fmt.Fprint(w, ": ping\n\n")

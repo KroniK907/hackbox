@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"os"
 	"path/filepath"
@@ -89,6 +90,25 @@ func TestFinishSetupFirstWins(t *testing.T) {
 	}
 	if ok {
 		t.Fatal("second session must not exist")
+	}
+}
+
+func TestFinishSetupWithRunsExtraInSameTransaction(t *testing.T) {
+	t.Parallel()
+	db := openTemp(t)
+	ctx := context.Background()
+	err := db.FinishSetupWith(ctx, "hash-one", "session-one", func(*sql.Tx) error {
+		return errors.New("stop")
+	})
+	if err == nil || err.Error() != "stop" {
+		t.Fatalf("err = %v", err)
+	}
+	ok, err := db.HasAdminHash(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok {
+		t.Fatal("failed extra still wrote a hash")
 	}
 }
 

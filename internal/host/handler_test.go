@@ -149,17 +149,23 @@ func TestLiveAssetsAreLocalAndSettingsDoesNotSubscribe(t *testing.T) {
 		if !strings.Contains(rec.Header().Get("Content-Type"), contentType) {
 			t.Fatalf("GET %s Content-Type = %q", asset, rec.Header().Get("Content-Type"))
 		}
-		if asset == "/static/live.css" && !strings.Contains(rec.Body.String(), "position: fixed") {
-			t.Fatalf("GET %s did not contain fixed overlay styling", asset)
+		if asset == "/static/live.css" {
+			css := rec.Body.String()
+			if !strings.Contains(css, "position: fixed") {
+				t.Fatalf("GET %s did not contain fixed overlay styling", asset)
+			}
+			if !strings.Contains(css, "appearance: none") || !strings.Contains(css, `[data-theme="neon-dark"] .ui-field select`) {
+				t.Fatalf("GET %s missing themed select caret", asset)
+			}
 		}
 	}
 
 	setup := url.Values{"password": {"correct horse"}, "confirm": {"correct horse"}}
 	request(t, handler, http.MethodPost, "/setup", setup, "")
 	settings := request(t, handler, http.MethodGet, "/settings", nil, "")
-	if strings.Contains(settings.Body.String(), "sse-connect") ||
-		strings.Contains(settings.Body.String(), "sse.min.js") {
-		t.Fatalf("settings subscribed to SSE: %q", settings.Body.String())
+	if strings.Contains(settings.Body.String(), "sse:roster") ||
+		strings.Contains(settings.Body.String(), "/lobby/partials/board-roster") {
+		t.Fatalf("settings live-updated the player list: %q", settings.Body.String())
 	}
 }
 

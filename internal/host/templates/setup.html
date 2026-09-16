@@ -1,19 +1,47 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Set up Hackbox</title>
-</head>
-<body>
-  <main>
-    <h1>Set up Hackbox</h1>
-    <form method="post" action="/setup">
-      <label>Password <input name="password" type="password" minlength="8" required></label>
-      <label>Confirm password <input name="confirm" type="password" minlength="8" required></label>
-      {{with .Error}}<p role="alert">{{.}}</p>{{end}}
-      <button type="submit">Finish</button>
+{{template "ui-start-quiet" .}}
+<div class="ui-page">
+  <div class="ui-stack">
+    <div class="ui-header">
+      <div class="ui-brand ui-brand-sm">NEW GAME</div>
+      <form method="post" action="/setup/theme">
+        {{if eq .Theme "neon-dark"}}
+        <button class="ui-btn ui-btn-inline" type="submit">Dark</button>
+        {{else}}
+        <button class="ui-btn ui-btn-inline" type="submit">Light</button>
+        {{end}}
+      </form>
+    </div>
+    <form class="ui-stack" method="post" action="/setup">
+      <label class="ui-field">
+        <span>Password</span>
+        <input name="password" type="password" minlength="8" required>
+      </label>
+      <label class="ui-field">
+        <span>Confirm password</span>
+        <input name="confirm" type="password" minlength="8" required>
+      </label>
+      {{with .Error}}<p class="ui-alert" role="alert">{{.}}</p>{{end}}
+      <label class="ui-field">
+        <span>Advertised hostname</span>
+        <input name="hostname" type="text" value="{{.AdvertisedHostname}}" placeholder="{{.HostnameHint}}">
+      </label>
+      <div class="ui-split">
+        <label class="ui-field">
+          <span>Seat cap</span>
+          <input name="seat_cap" type="number" min="1" max="64" value="{{.SeatCap}}">
+        </label>
+        <label class="ui-field">
+          <span>After a game</span>
+          <select name="cycle_mode">
+            <option value="keep" {{if not .CycleSeats}}selected{{end}}>Keep seats</option>
+            <option value="cycle" {{if .CycleSeats}}selected{{end}}>Cycle seats</option>
+          </select>
+        </label>
+      </div>
+      <label><input type="checkbox" name="log_stdout" {{if .LogStdout}}checked{{end}}> Log to stdout</label>
+      <label><input type="checkbox" name="log_file" {{if .LogFile}}checked{{end}}> Log to host.log</label>
+      <button class="ui-btn" type="submit">Finish</button>
     </form>
-  </main>
-</body>
-</html>
+  </div>
+</div>
+{{template "ui-end"}}
